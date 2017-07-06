@@ -22,7 +22,7 @@ def main(device, epochs, batch_size):
     random.seed(seed)
 
     # dataget
-    dataset = data("german-traffic-signs").get()
+    dataset = data("cifar10").get()
 
     # data_generator
     data_generator = dataset.training_set.random_batch_arrays_generator(batch_size)
@@ -45,7 +45,6 @@ def main(device, epochs, batch_size):
 
     # create model template
     template = Model(
-        n_classes = 43,
         name = network_name,
         model_path = model_path,
         graph = graph,

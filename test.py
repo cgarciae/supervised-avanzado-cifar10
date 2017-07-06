@@ -24,7 +24,7 @@ def main(device):
     random.seed(seed)
 
     # dataget
-    dataset = data("german-traffic-signs").get()
+    dataset = data("cifar10").get()
 
     # obtener imagenes
     print("loading data")
@@ -49,7 +49,6 @@ def main(device):
 
         # create model template
         template = Model(
-            n_classes = 43,
             name = network_name,
             model_path = model_path,
             graph = graph,

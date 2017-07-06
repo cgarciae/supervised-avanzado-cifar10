@@ -1,7 +1,7 @@
 #! /bin/bash
 set -e
 
-floyd init german-traffic-signs/jupyter
+floyd init cifar10/jupyter
 
 data_output_id=$(cat floyd/ids.yml | shyaml get-value data.output)
 model_output_id=$(cat floyd/ids.yml | shyaml get-value train.output)

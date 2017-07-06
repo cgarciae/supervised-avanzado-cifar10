@@ -2,11 +2,11 @@ from tfinterface.supervised import SoftmaxClassifier
 import tensorflow as tf
 import tfinterface as ti
 
+n_classes = 10
 
 class Model(SoftmaxClassifier):
 
-    def __init__(self, n_classes, *args, **kwargs):
-        self.n_classes = n_classes
+    def __init__(self, *args, **kwargs):
 
         self._initial_learning_rate = kwargs.pop("initial_learning_rate", 0.001)
         self._decay_steps = kwargs.pop("decay_steps", 100)
@@ -32,7 +32,7 @@ class Model(SoftmaxClassifier):
 
     def get_labels(self, inputs):
         # one hot labels
-        return tf.one_hot(inputs.labels, self.n_classes)
+        return tf.one_hot(inputs.labels, n_classes)
 
     def get_learning_rate(self, inputs):
         return tf.train.exponential_decay(
@@ -107,7 +107,7 @@ class Model(SoftmaxClassifier):
         net = tf.contrib.layers.flatten(net); print("Flatten: {}".format(net))
 
         # dense
-        net = ti.layers.dense_batch_norm(net, self.n_classes, batch_norm=dict(training=inputs.training)); print("Dense Batch Norm Layer 43: {}".format(net))
+        net = ti.layers.dense_batch_norm(net, n_classes, batch_norm=dict(training=inputs.training)); print("Dense Batch Norm Layer 43: {}".format(net))
 
         print("###############################\n")
 

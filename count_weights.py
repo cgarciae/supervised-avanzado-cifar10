@@ -30,7 +30,6 @@ def main(device, log):
 
     # create model template
     template = Model(
-        n_classes = 43,
         name = network_name,
         graph = graph,
         sess = sess,
