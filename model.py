@@ -8,8 +8,8 @@ class Model(SoftmaxClassifier):
 
     def __init__(self, *args, **kwargs):
 
-        self._learning_rates = kwargs.pop("learning_rates", [0.01, 0.001, 0.0001])
-        self._boundaries = kwargs.pop("boundaries", [10000, 15000])
+        self._learning_rates = kwargs.pop("learning_rates", [0.1, 0.01, 0.001])
+        self._boundaries = kwargs.pop("boundaries", [16000, 24000])
 
         # rotation
         self._rotation_angle = kwargs.pop("rotation_angle", 15.0)
@@ -23,6 +23,7 @@ class Model(SoftmaxClassifier):
         self._compression = kwargs.pop("compression", 0.5)
         self._bottleneck = kwargs.pop("bottleneck", 4 * self._growth_rate)
         self._depth = kwargs.pop("depth", 100)
+        self._depth -= 4
         self._n_layers = (
             self._depth / 6 if self._bottleneck else
             self._depth / 3
@@ -43,6 +44,15 @@ class Model(SoftmaxClassifier):
 
     def get_logits(self, inputs):
 
+        ops = dict(
+            bottleneck = self._bottleneck,
+            compression=self._compression,
+            activation=self._activation,
+            padding="same",
+            dropout = dict(rate = self._dropout_rate),
+            batch_norm = dict(training = inputs.training, momentum = 0.9)
+        )
+
         print("###############################")
         print("# Model")
         print("###############################")
@@ -51,53 +61,23 @@ class Model(SoftmaxClassifier):
         # net = tf.layers.batch_normalization(net, training=inputs.training); print("Batch Norm: {}".format(net))
 
         # big kernel
-        net = ti.layers.conv2d_batch_norm(net, 2 * self._growth_rate, [7, 7], activation=self._activation, padding='same', batch_norm=dict(training=inputs.training))
+        net = tf.layers.conv2d(net, 2 * self._growth_rate, [3, 3], padding='same')
         print("Batch Norm Layer 24, 7x7: {}".format(net))
 
         # dense 1
-        self._n_layers = 6
-        net = ti.layers.conv2d_dense_block(
-            net, self._growth_rate, self._n_layers, bottleneck = self._bottleneck, compression=self._compression,
-            activation=self._activation, padding="same",
-            dropout = dict(rate = self._dropout_rate),
-            batch_norm = dict(training = inputs.training)
-        ); print("DenseBlock(growth_rate={}, layers={}, bottleneck={}, compression={}): {}".format(
-            self._growth_rate, self._n_layers, self._bottleneck, self._compression, net))
-        # net = tf.layers.average_pooling2d(net, [2, 2], strides=2); print("Average Pooling 2x2".format(net))
+        # self._n_layers = 6
+        net = ti.layers.conv2d_dense_block(net, self._growth_rate, self._n_layers, **ops); print("DenseBlock(growth_rate={}, layers={}, bottleneck={}, compression={}): {}".format(self._growth_rate, self._n_layers, self._bottleneck, self._compression, net))
+        net = tf.layers.average_pooling2d(net, [2, 2], strides=2); print("Average Pooling 2x2".format(net))
 
 
         # dense 2
-        self._n_layers = 12
-        net = ti.layers.conv2d_dense_block(
-            net, self._growth_rate, self._n_layers, bottleneck = self._bottleneck, compression=self._compression,
-            activation=self._activation, padding="same",
-            dropout = dict(rate = self._dropout_rate),
-            batch_norm = dict(training = inputs.training)
-        ); print("DenseBlock(growth_rate={}, layers={}, bottleneck={}, compression={}): {}".format(
-            self._growth_rate, self._n_layers, self._bottleneck, self._compression, net))
+        # self._n_layers = 12
+        net = ti.layers.conv2d_dense_block(net, self._growth_rate, self._n_layers, **ops); print("DenseBlock(growth_rate={}, layers={}, bottleneck={}, compression={}): {}".format(self._growth_rate, self._n_layers, self._bottleneck, self._compression, net))
         net = tf.layers.average_pooling2d(net, [2, 2], strides=2); print("Average Pooling 2x2".format(net))
 
         # dense 3
-        self._n_layers = 24
-        net = ti.layers.conv2d_dense_block(
-            net, self._growth_rate, self._n_layers, bottleneck = self._bottleneck, compression=self._compression,
-            activation=self._activation, padding="same",
-            dropout = dict(rate = self._dropout_rate),
-            batch_norm = dict(training = inputs.training)
-        ); print("DenseBlock(growth_rate={}, layers={}, bottleneck={}, compression={}): {}".format(
-            self._growth_rate, self._n_layers, self._bottleneck, self._compression, net))
-        net = tf.layers.average_pooling2d(net, [2, 2], strides=2); print("Average Pooling 2x2".format(net))
-
-        # dense 4
-        self._n_layers = 16
-        net = ti.layers.conv2d_dense_block(
-            net, self._growth_rate, self._n_layers, bottleneck = self._bottleneck, compression=self._compression,
-            activation=self._activation, padding="same",
-            dropout = dict(rate = self._dropout_rate),
-            batch_norm = dict(training = inputs.training)
-        ); print("DenseBlock(growth_rate={}, layers={}, bottleneck={}, compression={}): {}".format(
-            self._growth_rate, self._n_layers, self._bottleneck, self._compression, net))
-        # net = tf.layers.average_pooling2d(net, [2, 2], strides=2); print("Average Pooling 2x2".format(net))
+        # self._n_layers = 24
+        net = ti.layers.conv2d_dense_block(net, self._growth_rate, self._n_layers, **ops); print("DenseBlock(growth_rate={}, layers={}, bottleneck={}, compression={}): {}".format(self._growth_rate, self._n_layers, self._bottleneck, self._compression, net))
 
         # global average pooling
         shape = net.get_shape()[1]
@@ -105,7 +85,7 @@ class Model(SoftmaxClassifier):
         net = tf.contrib.layers.flatten(net); print("Flatten: {}".format(net))
 
         # dense
-        net = ti.layers.dense_batch_norm(net, n_classes, batch_norm=dict(training=inputs.training)); print("Dense Batch Norm Layer 43: {}".format(net))
+        net = tf.layers.dense(net, n_classes); print("Dense Layer({}): {}".format(n_classes, net))
 
         print("###############################\n")
 
