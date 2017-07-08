@@ -8,7 +8,7 @@ class Model(SoftmaxClassifier):
 
     def __init__(self, *args, **kwargs):
 
-        self._learning_rates = kwargs.pop("learning_rates", [0.1, 0.01, 0.001])
+        self._learning_rates = kwargs.pop("learning_rates", [0.01, 0.001, 0.0003])
         self._boundaries = kwargs.pop("boundaries", [16000, 24000])
 
         # rotation
