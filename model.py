@@ -75,7 +75,7 @@ class Model(SoftmaxClassifier):
 
         # big kernel
         net = tf.layers.conv2d(net, 2 * self._growth_rate, [3, 3], **conv_ops)
-        print("Batch Norm Layer 24, 7x7: {}".format(net))
+        print("Conv2D_3x3: {}".format(net))
 
         # dense 1
         # self._n_layers = 6
