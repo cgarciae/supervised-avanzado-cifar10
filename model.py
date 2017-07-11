@@ -9,7 +9,7 @@ class Model(SoftmaxClassifier):
     def __init__(self, *args, **kwargs):
 
         self._learning_rates = kwargs.pop("learning_rates", [0.01, 0.001, 0.0003])
-        self._boundaries = kwargs.pop("boundaries", [18000, 36000])
+        self._boundaries = kwargs.pop("boundaries", [12000, 24000])
 
         # rotation
         self._rotation_angle = kwargs.pop("rotation_angle", 15.0)
@@ -28,6 +28,7 @@ class Model(SoftmaxClassifier):
             self._depth / 6 if self._bottleneck else
             self._depth / 3
         )
+        self._weight_decay = kwargs.pop("weight_decay", 1E-4)
 
         super(Model, self).__init__(*args, **kwargs)
 
@@ -46,11 +47,23 @@ class Model(SoftmaxClassifier):
 
         ops = dict(
             bottleneck = self._bottleneck,
-            compression=self._compression,
-            activation=self._activation,
-            padding="same",
+            compression = self._compression,
+            activation = self._activation,
+            padding = "same",
             dropout = dict(rate = self._dropout_rate),
-            batch_norm = dict(training = inputs.training, momentum = 0.9)
+            batch_norm = dict(training = inputs.training, momentum = 0.9),
+            weight_decay = self._weight_decay
+        )
+
+        conv_ops = dict(
+            padding = "same",
+            use_bias = False,
+            kernel_regularizer = tf.contrib.layers.l2_regularizer(self._weight_decay)
+        )
+
+        dense_ops = dict(
+            kernel_regularizer = tf.contrib.layers.l2_regularizer(self._weight_decay),
+            bias_regularizer = tf.contrib.layers.l2_regularizer(self._weight_decay)
         )
 
         print("###############################")
@@ -61,7 +74,7 @@ class Model(SoftmaxClassifier):
         # net = tf.layers.batch_normalization(net, training=inputs.training); print("Batch Norm: {}".format(net))
 
         # big kernel
-        net = tf.layers.conv2d(net, 2 * self._growth_rate, [3, 3], padding='same')
+        net = tf.layers.conv2d(net, 2 * self._growth_rate, [3, 3], **conv_ops)
         print("Batch Norm Layer 24, 7x7: {}".format(net))
 
         # dense 1
@@ -85,7 +98,7 @@ class Model(SoftmaxClassifier):
         net = tf.contrib.layers.flatten(net); print("Flatten: {}".format(net))
 
         # dense
-        net = tf.layers.dense(net, n_classes); print("Dense Layer({}): {}".format(n_classes, net))
+        net = tf.layers.dense(net, n_classes, **dense_ops); print("Dense({}): {}".format(n_classes, net))
 
         print("###############################\n")
 
@@ -96,15 +109,15 @@ class Model(SoftmaxClassifier):
             tf.summary.scalar("learning_rate", self.learning_rate)
         ]
 
-    def random_rotate_images(self, net):
-        return tf.where(
-            self.inputs.training,
-            tf.contrib.image.rotate(
-                net,
-                tf.random_uniform(tf.shape(net)[:1], minval = -self._rotation_angle, maxval = self._rotation_angle)
-            ),
-            net
-        )
+    def get_loss(self, *args, **kwargs):
+
+        with tf.name_scope("reg_loss"):
+            reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES, scope=self.name)
+            reg_loss = sum(reg_losses)
+
+        loss = super(Model, self).get_loss(*args, **kwargs)
+
+        return loss + reg_loss
 
     def get_update(self, *args, **kwargs):
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
